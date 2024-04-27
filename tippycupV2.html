@@ -1,0 +1,118 @@
+<h>Tippy Cup</h>
+<p>Thank you for playing tippy cup</p>
+<p id="angle"></p>
+<canvas id="tipcan"></canvas>
+
+<script>
+// canvas width and height
+
+var width = 1200;
+var height = 500;
+
+var c = document.getElementById("tipcan");
+var ctx = c.getContext("2d");
+
+var unit_length = Math.round(height*1.5);
+var center_x = Math.round(width/2);
+var center_y = Math.round(3*height/4);
+
+var r = 0.6
+var h = 0.4
+var MU = 0.8
+var u = 2
+
+var L = 0.3 // height of bottle
+var RHO_B = 0.01 // mass per unit length for bottle
+var RHO_L = 0.1 // mass per unit area for the liquid
+var M_B = RHO_B*2*L*(1+r) // mass of bottle
+var M_L = RHO_L*h*r*(L**2) // mass of liquid
+var M = M_B+M_L // total mass
+var X = L*(M_L*h + M_B)/(M_L+M_B) // 2 times the height of the COM (to make equations work nicely)
+    
+var I_B = 2*(r**3)*(L**3)*RHO_B/12 + r*L*RHO_B*(X/2)**2 + r*L*RHO_B*(L-X/2)**2 + 2*(L**3)*RHO_B/12 + 2*L*RHO_B*((r*L)**2 + (L/2-X/2)**2) // moment of inertia of bottle about COM
+var I_L = (1/12)*M_L*(L**2)*(r**2+h**2) + M_L*((X/2)-(h*L/2))**2 // moment of inertia of liquid about COM
+var I_T = I_B + I_L // total moment of inertia about COM
+    
+var g = 10 // gravity
+var phi = Math.atan2(X,(L*r)) // starting angle of the COM
+var alpha = Math.atan(1/MU)
+    
+// define constants of the simulation
+    
+var dt = 0.001 // time increment
+
+var theta = phi // initial angle
+var d_theta = 0 // initial angular velocity
+    
+var t = 0
+var dist = 0
+var v = u
+
+function drawCup(){
+
+
+    // backwards difference method
+
+    d_theta = d_theta + dt*((M*g-(0.5)*M*Math.sqrt(X**2+(r*L)**2)*( - Math.sin(theta)*((d_theta))**2))*(0.5)*(Math.sqrt((X**2+(r*L)**2)*(1+MU**2)))*(Math.sin(theta-alpha)))
+    /(I_T + (0.5)*M*Math.sqrt(X**2+(r*L)**2)*Math.cos(theta)*(0.5)*(Math.sqrt((X**2+(r*L)**2)*(1+MU**2)))*(Math.sin(theta-alpha)))
+    
+    theta = theta+dt*d_theta
+        
+    if(v <= 0){
+        v = 0
+        alpha = Math.PI/2
+        MU = 0
+    }
+    else{
+        v = u-MU*g*t+MU*(0.5)*Math.sqrt(X**2+(r*L)**2)*Math.cos(theta)*d_theta
+    }
+    
+    dist = dist + v*dt
+    
+    if(theta>=Math.PI/2+phi){
+        theta = Math.PI/2+phi
+        d_theta = 0
+        MU = 0
+        g = 0
+    }
+    if(theta<=phi){
+        theta = phi
+        d_theta = 0
+    }
+    c.height = height;
+    c.width = width;
+    
+    ctx.clearRect(0,0,width,height);
+    
+    ctx.translate(center_x-dist*unit_length, center_y);
+    ctx.save();
+    
+    document.getElementById("angle").innerHTML = v;
+    ctx.rotate(-theta+phi);
+
+    ctx.beginPath();
+    ctx.moveTo(0,0);
+    ctx.lineTo(0,-L*unit_length);
+    ctx.lineTo(r*L*unit_length, -L*unit_length);
+    ctx.lineTo(r*L*unit_length, 0);
+    ctx.lineTo(0,0);
+    ctx.stroke();  
+    
+    ctx.beginPath();
+    ctx.rect(0, 0, r*L*unit_length, -h*L*unit_length);
+    ctx.fillStyle = "blue";
+    ctx.fill();
+    ctx.strokeStyle = "blue";
+    
+    ctx.restore();
+    
+    t+=dt
+
+requestAnimationFrame(drawCup);
+
+}
+
+drawCup();
+
+
+</script>
